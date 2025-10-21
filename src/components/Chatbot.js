@@ -12,15 +12,43 @@ function Chatbot({ onLogout }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const sendMessage = (e) => {
+  const sendMessage = async (e) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || loading) return;
 
     const userMessage = { text: input, sender: 'user' };
-    const botResponse = { text: `Respuesta automática a: ${input}`, sender: 'bot' };
-    
-    setMessages([...messages, userMessage, botResponse]);
+    setMessages(prev => [...prev, userMessage]);
+    setLoading(true);
+
+    try {
+      const response = await fetch('https://uuwyl5urj2.execute-api.us-west-2.amazonaws.com/prod/agent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: input })
+      });
+
+      const data = await response.json();
+      const botResponse = { 
+        text: data.response || data.message || 'Respuesta del servidor', 
+        sender: 'bot' 
+      };
+      
+      setMessages(prev => [...prev, botResponse]);
+    } catch (error) {
+      console.error('Error al comunicarse con el API:', error);
+      const errorResponse = { 
+        text: 'Error al conectar con el servidor. Intenta nuevamente.', 
+        sender: 'bot' 
+      };
+      setMessages(prev => [...prev, errorResponse]);
+    } finally {
+      setLoading(false);
+    }
+
     setInput('');
   };
 
@@ -90,6 +118,11 @@ function Chatbot({ onLogout }) {
             {msg.text}
           </div>
         ))}
+        {loading && (
+          <div className="message bot loading">
+            <span>Novi está escribiendo...</span>
+          </div>
+        )}
       </div>
       
       <form onSubmit={sendMessage} className="input-form">
@@ -98,6 +131,7 @@ function Chatbot({ onLogout }) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Escribe tu mensaje..."
+          disabled={loading}
         />
         <label className={`file-upload-btn ${uploading ? 'uploading' : ''}`}>
           {uploading ? '⏳' : '📷'}
@@ -106,11 +140,13 @@ function Chatbot({ onLogout }) {
             accept="image/png"
             capture="environment"
             onChange={handleImageUpload}
-            disabled={uploading}
+            disabled={uploading || loading}
             style={{ display: 'none' }}
           />
         </label>
-        <button type="submit">Enviar</button>
+        <button type="submit" disabled={loading || !input.trim()}>
+          {loading ? '⏳' : 'Enviar'}
+        </button>
       </form>
     </div>
   );

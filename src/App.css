@@ -205,6 +205,22 @@
   font-size: 1rem;
 }
 
+.input-form button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+}
+
+.input-form input:disabled {
+  background: #f8f9fa;
+  color: #6c757d;
+}
+
+.message.loading {
+  background: #f0f0f0;
+  color: #666;
+  font-style: italic;
+}
+
 /* Mobile optimizations */
 @media (max-width: 768px) {
   .login-form {
